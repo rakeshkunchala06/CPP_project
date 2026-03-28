@@ -41,3 +41,4 @@ package/
 *.fdb_latexmk
 *.fls
 *.synctex.gz
+frontend/package-lock.json

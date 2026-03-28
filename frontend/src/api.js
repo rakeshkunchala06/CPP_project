@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'https://your-api-id.execute-api.eu-west-1.amazonaws.com/prod';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function getToken() {
   return localStorage.getItem('token');
