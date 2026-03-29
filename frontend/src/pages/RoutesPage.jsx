@@ -139,15 +139,15 @@ export default function RoutesPage() {
           </div>
         ) : (
           routes.map(route => (
-            <div key={route.routeId} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
+            <div key={route.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
               <div className="flex items-start justify-between mb-3">
-                <Link to={`/routes/${route.routeId}`} className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{route.name}</h3>
+                <Link to={`/routes/${route.id}`} className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 capitalize">{route.name}</h3>
                 </Link>
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{route.transitType}</span>
                   {isLoggedIn && (
-                    <button onClick={() => handleDelete(route.routeId)} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50">
+                    <button onClick={() => handleDelete(route.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
@@ -160,7 +160,7 @@ export default function RoutesPage() {
               </div>
               <div className="flex items-center justify-between">
                 <RatingStars rating={route.accessibilityRating || 0} />
-                <Link to={`/routes/${route.routeId}`} className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1">
+                <Link to={`/routes/${route.id}`} className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1">
                   Details <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>

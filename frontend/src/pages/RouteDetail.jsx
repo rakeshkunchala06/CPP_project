@@ -35,7 +35,7 @@ export default function RouteDetail() {
           const sd = await api.getStop(sid)
           details.push(sd.stop)
         } catch {
-          details.push({ stopId: sid, name: sid })
+          details.push({ id: sid, name: sid })
         }
       }
       setStopDetails(details)
@@ -99,7 +99,7 @@ export default function RouteDetail() {
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </Link>
         <Map className="h-8 w-8 text-blue-600" />
-        <h1 className="text-2xl font-bold text-gray-900">{route.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 capitalize">{route.name}</h1>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
@@ -191,7 +191,7 @@ export default function RouteDetail() {
         ) : (
           <div className="space-y-3">
             {stopDetails.map((stop, idx) => (
-              <div key={stop.stopId || idx} className="flex items-start gap-4">
+              <div key={stop.id || idx} className="flex items-start gap-4">
                 <div className="flex flex-col items-center">
                   <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">{idx + 1}</div>
                   {idx < stopDetails.length - 1 && <div className="w-0.5 h-8 bg-blue-200 mt-1"></div>}
@@ -199,7 +199,7 @@ export default function RouteDetail() {
                 <div className="flex-1 pb-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-gray-400" />
-                    <Link to={`/stops/${stop.stopId}`} className="font-medium text-gray-900 hover:text-blue-600">{stop.name}</Link>
+                    <Link to={`/stops/${stop.id}`} className="font-medium text-gray-900 hover:text-blue-600">{stop.name}</Link>
                   </div>
                   {stop.accessibilityFeatures && (
                     <div className="flex flex-wrap gap-1 mt-1">

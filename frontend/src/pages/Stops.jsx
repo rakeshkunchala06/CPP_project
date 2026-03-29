@@ -180,9 +180,9 @@ export default function Stops() {
           </div>
         ) : (
           stops.map(stop => (
-            <div key={stop.stopId} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
+            <div key={stop.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
               <div className="flex items-start justify-between">
-                <Link to={`/stops/${stop.stopId}`} className="flex-1">
+                <Link to={`/stops/${stop.id}`} className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-lg font-semibold text-gray-900">{stop.name}</h3>
                     {stop.transitTypes?.map(t => (
@@ -198,11 +198,11 @@ export default function Stops() {
                 </Link>
                 <div className="flex items-center gap-2 ml-4">
                   {isLoggedIn && (
-                    <button onClick={() => handleDelete(stop.stopId)} className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50">
+                    <button onClick={() => handleDelete(stop.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
-                  <Link to={`/stops/${stop.stopId}`} className="p-2 text-gray-400 hover:text-blue-600">
+                  <Link to={`/stops/${stop.id}`} className="p-2 text-gray-400 hover:text-blue-600">
                     <ChevronRight className="h-5 w-5" />
                   </Link>
                 </div>

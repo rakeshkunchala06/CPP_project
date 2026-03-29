@@ -75,7 +75,7 @@ function App() {
             <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <>
-                  <span className="text-sm text-gray-600">Hi, {user.name || user.email}</span>
+                  <span className="text-sm text-gray-600">Hi, {user.username || user.name || user.email}</span>
                   <button onClick={handleLogout} className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-50">
                     <LogOut className="h-4 w-4" /> Logout
                   </button>
