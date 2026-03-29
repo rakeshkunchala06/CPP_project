@@ -21,7 +21,7 @@ export default function Register({ onRegister }) {
     }
     setLoading(true)
     try {
-      const data = await api.register({ name, email, password })
+      const data = await api.register({ username: name, email, password })
       setToken(data.token)
       setUser(data.user)
       onRegister(data.user)

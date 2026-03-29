@@ -42,8 +42,8 @@ async function request(path, options = {}) {
 
 const api = {
   // Auth
-  register: (body) => request('/register', { method: 'POST', body: JSON.stringify(body) }),
-  login: (body) => request('/login', { method: 'POST', body: JSON.stringify(body) }),
+  register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+  login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
   // Stops
   getStops: () => request('/stops'),
