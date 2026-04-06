@@ -32,11 +32,29 @@ dynamodb = boto3.resource("dynamodb", region_name=REGION)
 table = dynamodb.Table(DYNAMODB_TABLE)
 s3 = boto3.client("s3", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
+cloudwatch = boto3.client("cloudwatch", region_name=REGION)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def push_metric(metric_name, value, unit="Count"):
+    """Push a custom metric to CloudWatch. Fails silently to avoid breaking main flow."""
+    try:
+        cloudwatch.put_metric_data(
+            Namespace="TransitAccess",
+            MetricData=[
+                {
+                    "MetricName": metric_name,
+                    "Value": value,
+                    "Unit": unit,
+                }
+            ],
+        )
+    except Exception:
+        pass
+
 
 def convert_decimals(obj):
     """Recursively convert Decimal types to int/float for JSON serialization."""
@@ -308,6 +326,7 @@ def handle_create_stop(event):
     }
 
     table.put_item(Item=item)
+    push_metric("TotalStops", len(scan_all(Attr("entityType").eq("stop"))))
     return json_response(201, {"message": "Stop created", "stop": item})
 
 
@@ -387,6 +406,7 @@ def handle_delete_stop(event, stop_id):
             ConditionExpression="attribute_exists(id) AND entityType = :et",
             ExpressionAttributeValues={":et": "stop"},
         )
+        push_metric("TotalStops", len(scan_all(Attr("entityType").eq("stop"))))
         return json_response(200, {"message": "Stop deleted"})
     except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
         return json_response(404, {"error": "Stop not found"})
@@ -444,6 +464,7 @@ def handle_create_route(event):
     }
 
     table.put_item(Item=item)
+    push_metric("TotalRoutes", len(scan_all(Attr("entityType").eq("route"))))
     return json_response(201, {"message": "Route created", "route": item})
 
 
@@ -525,6 +546,7 @@ def handle_delete_route(event, route_id):
             ConditionExpression="attribute_exists(id) AND entityType = :et",
             ExpressionAttributeValues={":et": "route"},
         )
+        push_metric("TotalRoutes", len(scan_all(Attr("entityType").eq("route"))))
         return json_response(200, {"message": "Route deleted"})
     except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
         return json_response(404, {"error": "Route not found"})
@@ -791,6 +813,9 @@ def lambda_handler(event, context):
     # Handle CORS preflight
     if method == "OPTIONS":
         return json_response(200, {"message": "OK"})
+
+    # Track every non-OPTIONS API request in CloudWatch
+    push_metric("ApiRequests", 1)
 
     try:
         # --- PUBLIC routes (before auth check) ---
