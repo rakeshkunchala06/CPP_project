@@ -61,7 +61,6 @@ jobs:
           aws iam attach-role-policy --role-name transitaccess-lambda-role --policy-arn arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess || true
           aws iam attach-role-policy --role-name transitaccess-lambda-role --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess || true
           aws iam attach-role-policy --role-name transitaccess-lambda-role --policy-arn arn:aws:iam::aws:policy/AmazonSNSFullAccess || true
-          aws iam attach-role-policy --role-name transitaccess-lambda-role --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess || true
           aws iam attach-role-policy --role-name transitaccess-lambda-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole || true
 
       - name: Create SNS topic
