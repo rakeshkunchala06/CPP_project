@@ -168,4 +168,22 @@ jobs:
           }'
 
           aws s3 sync frontend/dist/ s3://transitaccess-frontend-prod-rakesh --delete --region eu-west-1
+
+          # SPA fallback: upload index.html as the object body for every named
+          # client-side route so direct deep-links return HTTP 200 instead of
+          # S3's default 404 (S3 website hosting returns 404 even when an
+          # ErrorDocument is configured).
+          for route in login register stops routes search favorites; do
+            aws s3 cp frontend/dist/index.html s3://transitaccess-frontend-prod-rakesh/$route \
+              --content-type "text/html" \
+              --cache-control "no-cache, no-store, must-revalidate" \
+              --region eu-west-1
+          done
+
+          # Re-assert website config (idempotent) after sync
+          aws s3api put-bucket-website --bucket transitaccess-frontend-prod-rakesh --region eu-west-1 --website-configuration '{
+            "IndexDocument": {"Suffix": "index.html"},
+            "ErrorDocument": {"Key": "index.html"}
+          }'
+
           echo "Frontend URL: http://transitaccess-frontend-prod-rakesh.s3-website-eu-west-1.amazonaws.com"
