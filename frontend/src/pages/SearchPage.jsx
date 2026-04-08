@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Star, Filter, MapPin } from 'lucide-react'
-import api from '../api'
+import { Search, Star, Filter, MapPin, Heart } from 'lucide-react'
+import api, { getToken } from '../api'
 
 const ALL_FEATURES = [
   'wheelchair_ramp', 'elevator', 'tactile_paving',
@@ -15,6 +15,62 @@ export default function SearchPage() {
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Map of routeId -> favouriteId (so we know which routes are already saved
+  // and can remove them by favourite primary key).
+  const [favMap, setFavMap] = useState({})
+  const [favBusy, setFavBusy] = useState(null)
+  const [toast, setToast] = useState('')
+  const isLoggedIn = !!getToken()
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    loadFavorites()
+  }, [])
+
+  const loadFavorites = async () => {
+    try {
+      const data = await api.getFavorites()
+      const map = {}
+      for (const f of data.favorites || []) {
+        if (f.routeId) map[f.routeId] = f.id
+      }
+      setFavMap(map)
+    } catch {
+      // Non-blocking — search still works without the favourite state.
+    }
+  }
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 2000)
+  }
+
+  const toggleFavourite = async (e, routeId) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isLoggedIn || favBusy === routeId) return
+    setFavBusy(routeId)
+    try {
+      if (favMap[routeId]) {
+        const favId = favMap[routeId]
+        await api.removeFavorite(favId)
+        setFavMap(prev => {
+          const next = { ...prev }
+          delete next[routeId]
+          return next
+        })
+        showToast('Removed from favourites')
+      } else {
+        const data = await api.addFavorite({ routeId })
+        setFavMap(prev => ({ ...prev, [routeId]: data.favoriteId }))
+        showToast('Added to favourites')
+      }
+    } catch (err) {
+      showToast(err.message || 'Favourite action failed')
+    } finally {
+      setFavBusy(null)
+    }
+  }
 
   const toggleNeed = (n) => {
     setNeeds(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n])
@@ -108,28 +164,57 @@ export default function SearchPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {results.results?.map(route => (
-                <Link key={route.routeId} to={`/routes/${route.routeId}`}
-                  className="block bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{route.name}</h3>
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{route.transitType}</span>
+              {results.results?.map(route => {
+                const isFav = !!favMap[route.id]
+                return (
+                  <div key={route.id}
+                    className="relative bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
+                    {isLoggedIn && (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleFavourite(e, route.id)}
+                        disabled={favBusy === route.id}
+                        aria-label={isFav ? 'Remove from favourites' : 'Add to favourites'}
+                        className={`absolute top-4 right-4 p-2 rounded-full border transition-colors disabled:opacity-50 ${
+                          isFav
+                            ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                            : 'bg-white border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200'
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500' : ''}`} />
+                      </button>
+                    )}
+                    <Link to={`/routes/${route.id}`} className="block">
+                      <div className="flex items-start justify-between mb-2 pr-10">
+                        <h3 className="text-lg font-semibold text-gray-900">{route.name}</h3>
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{route.transitType}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                        <span>{route.origin}</span>
+                        <span className="text-gray-400">&rarr;</span>
+                        <span>{route.destination}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <Star key={i} className={`h-4 w-4 ${i <= route.accessibilityRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1">Accessibility: {route.accessibilityRating}/5</span>
+                        {isFav && (
+                          <span className="ml-2 text-[11px] font-medium text-red-500">Saved</span>
+                        )}
+                      </div>
+                    </Link>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                    <span>{route.origin}</span>
-                    <span className="text-gray-400">&rarr;</span>
-                    <span>{route.destination}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <Star key={i} className={`h-4 w-4 ${i <= route.accessibilityRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                    ))}
-                    <span className="text-xs text-gray-500 ml-1">Accessibility: {route.accessibilityRating}/5</span>
-                  </div>
-                </Link>
-              ))}
+                )
+              })}
             </div>
           )}
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50">
+          {toast}
         </div>
       )}
     </div>

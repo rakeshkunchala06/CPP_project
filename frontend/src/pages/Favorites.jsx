@@ -77,7 +77,7 @@ export default function Favorites() {
           {favorites.map(fav => {
             const route = fav.route || {}
             return (
-              <div key={fav.favoriteId} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
+              <div key={fav.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-blue-200 transition-colors">
                 <div className="flex items-start justify-between">
                   <Link to={`/routes/${fav.routeId}`} className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -98,7 +98,7 @@ export default function Favorites() {
                       </div>
                     )}
                   </Link>
-                  <button onClick={() => handleRemove(fav.favoriteId)}
+                  <button onClick={() => handleRemove(fav.id)}
                     className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50">
                     <Trash2 className="h-4 w-4" />
                   </button>

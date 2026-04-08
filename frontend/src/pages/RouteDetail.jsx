@@ -185,36 +185,80 @@ export default function RouteDetail() {
 
       {/* Stop Sequence */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Stop Sequence</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Stop Sequence</h2>
+          {stopDetails.length > 0 && (
+            <span className="text-xs text-gray-500">{stopDetails.length} stop{stopDetails.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+
+        {(() => {
+          const inaccessibleCount = stopDetails.filter(
+            s => !s.accessibilityFeatures || s.accessibilityFeatures.length < 3
+          ).length
+          if (stopDetails.length > 0 && inaccessibleCount > 0) {
+            return (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-xs mb-4">
+                ⚠ {inaccessibleCount} stop{inaccessibleCount !== 1 ? 's' : ''} on this route may not be fully accessible.
+              </div>
+            )
+          }
+          if (stopDetails.length > 0) {
+            return (
+              <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg px-3 py-2 text-xs mb-4">
+                ✓ All stops on this route meet the basic accessibility criteria.
+              </div>
+            )
+          }
+          return null
+        })()}
+
         {stopDetails.length === 0 ? (
-          <p className="text-sm text-gray-500">No intermediate stops on this route.</p>
+          <div className="text-center py-6">
+            <MapPin className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No intermediate stops have been added to this route yet.</p>
+            {isLoggedIn && (
+              <p className="text-xs text-gray-400 mt-1">
+                Edit the route to assign stops from the Stops page.
+              </p>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
-            {stopDetails.map((stop, idx) => (
-              <div key={stop.id || idx} className="flex items-start gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">{idx + 1}</div>
-                  {idx < stopDetails.length - 1 && <div className="w-0.5 h-8 bg-blue-200 mt-1"></div>}
-                </div>
-                <div className="flex-1 pb-2">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <Link to={`/stops/${stop.id}`} className="font-medium text-gray-900 hover:text-blue-600">{stop.name}</Link>
+            {stopDetails.map((stop, idx) => {
+              const features = stop.accessibilityFeatures || []
+              const isFullyAccessible = features.length >= 3
+              return (
+                <div key={stop.id || idx} className="flex items-start gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      isFullyAccessible ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                    }`}>
+                      {idx + 1}
+                    </div>
+                    {idx < stopDetails.length - 1 && <div className="w-0.5 h-8 bg-blue-200 mt-1"></div>}
                   </div>
-                  {stop.accessibilityFeatures && (
+                  <div className="flex-1 pb-2">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      <Link to={`/stops/${stop.id}`} className="font-medium text-gray-900 hover:text-blue-600">{stop.name}</Link>
+                      {!isFullyAccessible && (
+                        <span className="text-[10px] uppercase tracking-wide font-semibold text-red-500">Limited access</span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {ALL_FEATURES.map(f => (
                         <span key={f} className={`text-xs px-2 py-0.5 rounded-full ${
-                          stop.accessibilityFeatures.includes(f) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                          features.includes(f) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
                         }`}>
                           {f.replace(/_/g, ' ')}
                         </span>
                       ))}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
