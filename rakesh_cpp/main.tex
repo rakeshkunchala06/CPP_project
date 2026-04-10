@@ -37,10 +37,10 @@
 \title{TransitAccess: A Serverless Cloud-Based Accessible Public Transit Trip Planner on AWS}
 
 \author{\IEEEauthorblockN{Rakesh Kunchala}
-\IEEEauthorblockA{Student ID: x00000000 \\
+\IEEEauthorblockA{Student ID: x25176862 \\
 MSc in Cloud Computing \\
 National College of Ireland, Dublin \\
-rakesh.kunchala@student.ncirl.ie}}
+x25176862@student.ncirl.ie}}
 
 \maketitle
 
@@ -48,7 +48,7 @@ rakesh.kunchala@student.ncirl.ie}}
 % ABSTRACT
 % ============================================================
 \begin{abstract}
-This paper presents the design, implementation, and deployment of TransitAccess, a serverless cloud-based accessible public transit trip planner hosted on Amazon Web Services. The application enables users to plan public transit journeys with a primary focus on accessibility requirements, providing features including transit stop management with detailed accessibility feature cataloguing, route creation with accessibility ratings, accessibility-aware route search using geographic distance calculations, favourite route management, and comprehensive accessibility statistics dashboards. The system leverages six AWS services programmatically, namely AWS Lambda for serverless compute, Amazon DynamoDB for NoSQL data storage, Amazon API Gateway for RESTful endpoint routing, Amazon S3 for static website hosting, Amazon Simple Notification Service for route update notifications, and AWS Identity and Access Management for fine-grained access control. A custom object-oriented Python library called transit-access-nci was developed and published to the Python Package Index, providing route optimisation using Haversine distance calculations, accessibility compliance checking against six defined accessibility features, transit data formatting, and input validation utilities with 47 automated tests. The application computes accessibility scores on a zero to one hundred scale for both individual stops and complete routes, enabling users with mobility, visual, or other accessibility needs to identify routes that meet their specific requirements. A CI/CD pipeline implemented through GitHub Actions automates testing, infrastructure provisioning, and deployment. The results demonstrate that serverless cloud architectures can effectively support accessibility-focused transit planning applications with geographic computation and multi-criteria search capabilities.
+A wheelchair user planning a bus journey today typically discovers that the ramp at their intended stop is out of service only upon arrival, because mainstream journey planners optimise for speed and cost rather than accessibility. TransitAccess addresses this gap with a serverless public transit planner in which every stop carries a first-class accessibility profile — wheelchair ramp, elevator, tactile paving, audio announcements, low-floor boarding, accessible toilet — and every route is scored against those profiles before it is ever shown to the rider. The system is built entirely on six AWS services (Lambda, DynamoDB, API Gateway, S3, SNS, IAM) and is backed by \texttt{transit-access-nci}, an original Python package that ships the Haversine distance computation, the accessibility scoring model, and the input validation used by the Lambda handler. The package is installable from PyPI and is gated by 47 pytest cases that run as the first job of the GitHub Actions pipeline on every push. A user registers an account, specifies mandatory accessibility needs, enters an origin and destination, and receives a ranked list of routes with a per-stop breakdown of which features are present or missing. Favourites are persisted per-user so riders can return to verified journeys. This paper walks through the requirements, the three-tier architecture, the library design, the six-service justification, the implementation, and the automated deployment workflow, and concludes with observations on the strengths and limitations of building accessibility-first transit software with pay-per-request serverless infrastructure.
 \end{abstract}
 
 % ============================================================
@@ -71,7 +71,31 @@ The primary objectives of this project are threefold. First, to design and imple
 
 The application satisfies the following functional requirements. First, the authentication subsystem provides user registration and login functionality, enabling transit users to create accounts and authenticate to access personalised features including favourite routes and accessibility preference profiles.
 
-Second, the transit stop management subsystem provides complete CRUD operations for transit stops. Each stop is defined by its name, geographic coordinates (latitude and longitude), a description, and a set of boolean accessibility features drawn from the six defined categories: wheelchair\_ramp indicating the presence of ramp access to the platform, elevator indicating lift access between levels, tactile\_paving indicating textured ground surfaces for visually impaired navigation, audio\_announcements indicating audible information systems, low\_floor\_boarding indicating level boarding capability for wheelchair and mobility aid users, and accessible\_toilet indicating the availability of accessible restroom facilities. The system computes an accessibility score for each stop on a scale of zero to one hundred based on the proportion of accessibility features present.
+Second, the transit stop management subsystem provides complete CRUD operations for transit stops. Each stop is defined by its name, geographic coordinates (latitude and longitude), a description, and a set of boolean accessibility features drawn from six defined categories summarised in Table~\ref{tab:features}. The system computes an accessibility score for each stop on a scale of zero to one hundred based on the proportion of features present.
+
+\begin{table}[H]
+\centering
+\caption{Accessibility features modelled by TransitAccess}
+\label{tab:features}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\columnwidth}{|l|X|}
+\hline
+\textbf{Feature} & \textbf{Relevance} \\
+\hline
+wheelchair\_ramp & Platform ramp for boarding without stairs \\
+\hline
+elevator & Lift access between platform levels \\
+\hline
+tactile\_paving & Textured floor cue for visually impaired riders \\
+\hline
+audio\_announcements & Audible arrival and route information \\
+\hline
+low\_floor\_boarding & Level boarding for wheelchair and mobility aid users \\
+\hline
+accessible\_toilet & Accessible restroom at the stop or station \\
+\hline
+\end{tabularx}
+\end{table}
 
 Third, the route management subsystem enables the creation and management of transit routes defined as ordered sequences of stops with an associated accessibility rating on a scale of one to five. The system automatically computes a route-level accessibility score by aggregating the individual stop scores along the route, weighted by the manually assigned rating. Routes can be browsed, filtered by accessibility requirements, and viewed with detailed stop-by-stop accessibility information.
 
@@ -88,7 +112,43 @@ The non-functional requirements address performance, scalability, accuracy, and 
 % ============================================================
 \section{Architecture and Design}
 
-TransitAccess follows a serverless architecture pattern comprising three distinct tiers: a static frontend hosted on Amazon S3, a serverless API layer powered by AWS Lambda and Amazon API Gateway, and a data persistence layer using Amazon DynamoDB \cite{cloudpatterns}. This architecture was selected for its elimination of server management overhead, cost efficiency through pay-per-use pricing, and automatic scaling capabilities.
+\begin{table}[H]
+\centering
+\caption{Live deployment endpoints used throughout this paper}
+\label{tab:endpoints-live}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\columnwidth}{|l|X|}
+\hline
+\textbf{Resource} & \textbf{Location} \\
+\hline
+Frontend (S3) & \scriptsize\url{http://transitaccess-frontend-prod-rakesh.s3-website-eu-west-1.amazonaws.com} \\
+\hline
+REST API (API Gateway) & \scriptsize\url{https://nfaib4rdo5.execute-api.eu-west-1.amazonaws.com/prod} \\
+\hline
+Python library & \scriptsize\url{https://pypi.org/project/transit-access-nci/} \\
+\hline
+Source repository & \scriptsize\url{https://github.com/rakeshkunchala06/CPP_project} \\
+\hline
+AWS region & \texttt{eu-west-1} (Ireland) \\
+\hline
+\end{tabularx}
+\end{table}
+
+TransitAccess follows a serverless architecture pattern comprising three distinct tiers: a static frontend hosted on Amazon S3, a serverless API layer powered by AWS Lambda and Amazon API Gateway, and a data persistence layer using Amazon DynamoDB \cite{cloudpatterns}. This architecture was selected for its elimination of server management overhead, cost efficiency through pay-per-use pricing, and automatic scaling capabilities. Figure~\ref{fig:architecture} shows the deployment topology: each AWS service sits behind a single IAM-scoped Lambda execution role, and Figure~\ref{fig:component} captures the request flow between frontend, Lambda handlers, and persistent services.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{architecture_diagram.png}
+\caption{TransitAccess deployment architecture on AWS eu-west-1.}
+\label{fig:architecture}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{component_diagram.png}
+\caption{Request flow and component responsibilities.}
+\label{fig:component}
+\end{figure}
 
 The frontend is a single-page React application built with Vite and styled using Tailwind CSS. The compiled assets are deployed to an S3 bucket configured for static website hosting. The application features an interactive map view for stop visualisation and a route search interface with accessibility filtering controls.
 
@@ -148,7 +208,31 @@ The library includes 47 unit tests implemented with pytest, covering all four cl
 % ============================================================
 \section{Cloud-Based Services}
 
-The application integrates six AWS services, each serving a distinct purpose within the serverless architecture. This section provides a critical analysis and justification for each service selection.
+The application integrates six AWS services, each serving a distinct purpose within the serverless architecture. Table~\ref{tab:services} summarises the role of each service and the specific resource names used in the deployed system; the rest of this section discusses the rationale and trade-offs for each choice.
+
+\begin{table}[H]
+\centering
+\caption{AWS services used by TransitAccess}
+\label{tab:services}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\columnwidth}{|l|X|}
+\hline
+\textbf{Service} & \textbf{Role in TransitAccess} \\
+\hline
+AWS Lambda & Single Python 3.11 handler serving all API routes (256~MB, 30~s timeout) \\
+\hline
+Amazon DynamoDB & Single table \texttt{transitaccess-prod} keyed by \texttt{id}, polymorphic \texttt{entityType} attribute \\
+\hline
+Amazon API Gateway & REST proxy integration on \texttt{nfaib4rdo5.execute-api.eu-west-1.amazonaws.com/prod} \\
+\hline
+Amazon S3 & Static hosting bucket \texttt{transitaccess-frontend-prod-rakesh} for the React SPA \\
+\hline
+Amazon SNS & Topic \texttt{transitaccess-alerts} used to broadcast stop-level accessibility changes \\
+\hline
+AWS IAM & Least-privilege execution role scoped to the specific table, bucket, and topic ARNs \\
+\hline
+\end{tabularx}
+\end{table}
 
 \subsection{AWS Lambda}
 
